@@ -9,6 +9,8 @@ def _():
     import marimo as mo
     import matplotlib.pyplot as plt
     import numpy as np
+    import re
+    from io import StringIO
     from matplotlib.patches import Ellipse, FancyArrowPatch, FancyBboxPatch, ConnectionPatch
     from matplotlib.animation import FuncAnimation
     from matplotlib.patches import Rectangle, Circle, Polygon
@@ -16,20 +18,50 @@ def _():
     import matplotlib.patheffects as pe
 
 
-    # macOS 自带的 Hiragino Sans GB 覆盖中文；后续字体作为跨平台回退。
+    # SVG 保留文本节点，让浏览器使用系统中文字体渲染，避免 WASM 中读取本地字体文件。
+    plt.rcParams["svg.fonttype"] = "none"
+    plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["font.sans-serif"] = [
+        "PingFang SC",
         "Hiragino Sans GB",
+        "Microsoft YaHei",
         "Arial Unicode MS",
         "Noto Sans CJK SC",
         "DejaVu Sans",
     ]
     plt.rcParams["axes.unicode_minus"] = False
+
+    SVG_FONT_FAMILY = (
+        "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', "
+        "'Noto Sans CJK SC', 'Arial Unicode MS', 'DejaVu Sans', sans-serif"
+    )
+
+    def prefer_browser_cjk_fonts(svg):
+        svg = re.sub(
+            r"font-family:\s*[^;\"]+",
+            f"font-family: {SVG_FONT_FAMILY}",
+            svg,
+        )
+        svg_font_css = (
+            "<style type=\"text/css\">"
+            f"text,tspan{{font-family:{SVG_FONT_FAMILY} !important;}}"
+            "</style>"
+        )
+        return svg.replace("<defs>", f"<defs>{svg_font_css}", 1)
+
+    def figure_as_svg(figure):
+        buffer = StringIO()
+        figure.savefig(buffer, format="svg", bbox_inches="tight")
+        plt.close(figure)
+        return mo.Html(prefer_browser_cjk_fonts(buffer.getvalue()))
+
     return (
         ConnectionPatch,
         Ellipse,
         FancyArrowPatch,
         FancyBboxPatch,
         GridSpec,
+        figure_as_svg,
         mo,
         np,
         pe,
@@ -246,7 +278,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
         _style_axis(
             gain_axis,
             xlabel="时间",
-            ylabel=r"位置增益 $K_p$",
+            ylabel="位置增益 Kp",
             title="当前测量在更新中所占的权重",
         )
         return figure
@@ -298,7 +330,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
             axis,
             xlabel="速度 v",
             ylabel="位置 p",
-            title=rf"状态空间中的二维高斯分布（相关系数 $\rho={rho:.2f}$）",
+            title=f"状态空间中的二维高斯分布（相关系数 ρ={rho:.2f}）",
         )
         axis.legend(frameon=False)
         return figure
@@ -317,7 +349,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
             previous_mean[::-1],
             previous_covariance[::-1, ::-1],
             color=COLORS["posterior"],
-            label=r"上一时刻 $(\hat{x}_{k-1}^{+}, P_{k-1}^{+})$",
+            label="上一时刻 (x_hat k-1, P k-1)",
             alpha=0.16,
         )
         _covariance_ellipse(
@@ -325,7 +357,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
             predicted_mean[::-1],
             predicted_covariance[::-1, ::-1],
             color=COLORS["prior"],
-            label=r"预测 $(\hat{x}_{k}^{-}, P_{k}^{-})$",
+            label="预测 (x_hat k, P k)",
             alpha=0.18,
         )
         axis.annotate(
@@ -353,7 +385,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
             axis,
             xlabel="速度 v",
             ylabel="位置 p",
-            title=rf"线性预测：$\Delta t={dt:.1f}$",
+            title=f"线性预测：Δt={dt:.1f}",
         )
         axis.legend(frameon=False)
         return figure
@@ -383,7 +415,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
             display_mean,
             noisy_covariance[::-1, ::-1],
             color=COLORS["process"],
-            label=r"加入过程噪声 $Q$",
+            label="加入过程噪声 Q",
             alpha=0.18,
         )
         axis.set_xlim(display_mean[0] - 4.5, display_mean[0] + 4.5)
@@ -392,7 +424,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
             axis,
             xlabel="速度 v",
             ylabel="位置 p",
-            title=rf"未建模扰动扩大不确定性（$\sigma_a={process_std:.2f}$）",
+            title=f"未建模扰动扩大不确定性（σa={process_std:.2f}）",
         )
         axis.legend(frameon=False)
         return figure
@@ -635,11 +667,17 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
         active = stage_colors[stage]
 
         boxes = {
-            "posterior_old": (0.5, 3.8, 2.0, 1.2, r"上一后验" + "\n" + r"$\hat{x}_{k-1}^{+}, P_{k-1}^{+}$"),
-            "predict": (3.2, 3.8, 2.0, 1.2, "预测" + "\n" + r"$F, B, u, Q$"),
-            "prior": (5.9, 3.8, 2.0, 1.2, r"当前先验" + "\n" + r"$\hat{x}_{k}^{-}, P_{k}^{-}$"),
-            "update": (8.1, 1.2, 2.0, 1.2, "更新" + "\n" + r"$H, z, R, K$"),
-            "posterior_new": (5.9, 1.2, 2.0, 1.2, r"当前后验" + "\n" + r"$\hat{x}_{k}^{+}, P_{k}^{+}$"),
+            "posterior_old": (
+                0.5,
+                3.8,
+                2.0,
+                1.2,
+                "上一后验\nx_hat k-1, P k-1",
+            ),
+            "predict": (3.2, 3.8, 2.0, 1.2, "预测\nF, B, u, Q"),
+            "prior": (5.9, 3.8, 2.0, 1.2, "当前先验\nx_hat k, P k"),
+            "update": (8.1, 1.2, 2.0, 1.2, "更新\nH, z, R, K"),
+            "posterior_new": (5.9, 1.2, 2.0, 1.2, "当前后验\nx_hat k, P k"),
         }
 
         for name, (x_value, y_value, width, height, text) in boxes.items():
@@ -785,7 +823,7 @@ def _(mo):
     我们的机器人还配备了一个 GPS **传感器**，精度约为 10 米，这固然不错，但它需要比 10 米更高的定位精度。这片树林中有许多沟壑和悬崖，如果机器人的误差超过几英尺，就可能坠下悬崖。
 
     因此，仅凭 GPS 是不够的。
-    <img src="public/Pasted image 20260619202032.png" width="300" style="display: block; margin: 0 auto;" />
+    <img src="public/20260619202032.png" width="300" style="display: block; margin: 0 auto;" />
     我们可能还掌握一些关于机器人运动方式的信息：
     1. 它知道发送给轮式电机的指令；
     2. 也知道如果它朝某一方向行进且不受干扰，下一时刻它很可能继续沿同一方向移动。
@@ -1518,7 +1556,7 @@ def _(mo, mu_p, mu_v, sigma_p, sigma_v):
 
 
 @app.cell(hide_code=True)
-def _(GridSpec, mu_p, mu_v, np, plt, sigma_p, sigma_v):
+def _(GridSpec, figure_as_svg, mu_p, mu_v, np, plt, sigma_p, sigma_v):
     def gaussian_1d(x, mu, sigma):
         return 1 / (np.sqrt(2 * np.pi) * sigma) * np.exp(
             -0.5 * ((x - mu) / sigma) ** 2
@@ -1566,7 +1604,7 @@ def _(GridSpec, mu_p, mu_v, np, plt, sigma_p, sigma_v):
     ax_top.set_xlim(p_min, p_max)
     ax_top.set_ylabel(r"$f(p)$")
     ax_top.set_title(
-        rf"位置分布：$\mu_p={mu_p.value:.1f}$, $\sigma_p={sigma_p.value:.1f}$"
+        f"位置分布：μp={mu_p.value:.1f}, σp={sigma_p.value:.1f}"
     )
     ax_top.tick_params(axis="x", labelbottom=False)
 
@@ -1605,13 +1643,13 @@ def _(GridSpec, mu_p, mu_v, np, plt, sigma_p, sigma_v):
     ax_right.fill_betweenx(v, pdf_v, alpha=0.25)
     ax_right.set_xlabel(r"$f(v)$")
     ax_right.set_title(
-        rf"速度分布：$\mu_v={mu_v.value:.1f}$, $\sigma_v={sigma_v.value:.1f}$"
+        f"速度分布：μv={mu_v.value:.1f}, σv={sigma_v.value:.1f}"
     )
     ax_right.tick_params(axis="y", labelleft=False)
 
 
     fig.suptitle("位置-速度联合高斯分布可视化", fontsize=15, y=0.98)
-    fig
+    figure_as_svg(fig)
     return
 
 
@@ -1676,6 +1714,7 @@ def _(
     Sigma_pp_slider_cov,
     Sigma_pv_slider_cov,
     Sigma_vv_slider_cov,
+    figure_as_svg,
     mo,
     mu_p,
     mu_v,
@@ -1846,7 +1885,7 @@ def _(
 
         ax_joint_cov.set_xlabel("位置 p")
         ax_joint_cov.set_ylabel("速度 v")
-        ax_joint_cov.set_title(r"由协方差矩阵决定的二维高斯分布 $f(p, v)$")
+        ax_joint_cov.set_title("由协方差矩阵决定的二维高斯分布 f(p, v)")
 
         cbar_cov = fig_cov.colorbar(
             heatmap_cov,
@@ -1861,7 +1900,7 @@ def _(
         output_cov = mo.vstack(
             [
                 matrix_md_cov,
-                fig_cov,
+                figure_as_svg(fig_cov),
                 mo.md(
                     rf"""
                     当前矩阵是合法协方差矩阵。
@@ -1918,7 +1957,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(FancyArrowPatch, np, pe, plt):
+def _(FancyArrowPatch, figure_as_svg, np, pe, plt):
     def _():
         # -------- 坐标系：和参考图 2 保持一致 --------
         p_min, p_max = -8, 8
@@ -2117,20 +2156,20 @@ def _(FancyArrowPatch, np, pe, plt):
         ax.text(
             mu_prev[0] - 2.7,
             mu_prev[1] - 1.7,
-            r"时刻 $k-1$" "\n" r"$\hat{\mathbf{x}}_{k-1},\ \mathbf{P}_{k-1}$",
+            "时刻 k-1\nx_hat k-1, P k-1",
             fontsize=14,
             color="white",
-            path_effects=text_effect,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.45, edgecolor="none"),
             zorder=7,
         )
 
         ax.text(
             mu_pred[0] + 0.6,
             mu_pred[1] + 0.7,
-            r"预测到时刻 $k$" "\n" r"$\hat{\mathbf{x}}_{k},\ \mathbf{P}_{k}$",
+            "预测到时刻 k\nx_hat k, P k",
             fontsize=14,
             color="white",
-            path_effects=text_effect,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.45, edgecolor="none"),
             zorder=7,
         )
 
@@ -2163,7 +2202,7 @@ def _(FancyArrowPatch, np, pe, plt):
         return fig
 
 
-    _()
+    figure_as_svg(_())
     return
 
 
@@ -2321,7 +2360,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(ConnectionPatch, FancyArrowPatch, np, pe, plt):
+def _(ConnectionPatch, FancyArrowPatch, figure_as_svg, np, pe, plt):
     def _():
         # =========================
         # 二维高斯密度函数
@@ -2524,22 +2563,22 @@ def _(ConnectionPatch, FancyArrowPatch, np, pe, plt):
         ax_state.text(
             -6.9,
             -12.6,
-            r"状态估计坐标系" "\n" r"$\hat{\mathbf{x}}_k,\ \mathbf{P}_k$",
+            "状态估计坐标系\nx_hat k, P k",
             color="white",
             fontsize=17,
             weight="bold",
-            path_effects=white_stroke,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.50, edgecolor="none"),
             zorder=12,
         )
 
         ax_sensor.text(
             -3.95,
             3.25,
-            r"传感器读数坐标系" "\n" r"$\hat{\mathbf{z}}_k,\ \mathbf{S}_k$",
+            "传感器读数坐标系\nz_hat k, S k",
             color="white",
             fontsize=17,
             weight="bold",
-            path_effects=white_stroke,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.50, edgecolor="none"),
             zorder=12,
         )
 
@@ -2683,7 +2722,7 @@ def _(ConnectionPatch, FancyArrowPatch, np, pe, plt):
         return fig
 
 
-    _()
+    figure_as_svg(_())
     return
 
 
@@ -2709,7 +2748,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(np, pe, plt):
+def _(figure_as_svg, np, pe, plt):
     def _():
         # =========================
         # 二维高斯密度函数
@@ -2796,7 +2835,7 @@ def _(np, pe, plt):
 
         # 标注 z_k
         ax.annotate(
-            r"观测读数（均值）" "\n" r"$\vec{\mathbf{z}}_{k}$",
+            "观测读数（均值）\nz_k",
             xy=z_k,
             xytext=(1.9, 1.35),
             color="white",
@@ -2809,7 +2848,7 @@ def _(np, pe, plt):
                 shrinkA=3,
                 shrinkB=3,
             ),
-            path_effects=stroke,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.50, edgecolor="none"),
             zorder=12,
         )
 
@@ -2817,11 +2856,11 @@ def _(np, pe, plt):
         ax.text(
             -4.15,
             -3.95,
-            r"传感器噪声协方差" "\n" r"$\mathbf{R}_k$",
+            "传感器噪声协方差\nR_k",
             color="white",
             fontsize=18,
             weight="bold",
-            path_effects=stroke,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.50, edgecolor="none"),
             zorder=12,
         )
 
@@ -2871,7 +2910,7 @@ def _(np, pe, plt):
         return fig
 
 
-    _()
+    figure_as_svg(_())
     return
 
 
@@ -2884,7 +2923,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(FancyArrowPatch, np, pe, plt):
+def _(FancyArrowPatch, figure_as_svg, np, pe, plt):
     def gaussian_pdf_2d_for_demo(grid, mean, cov):
         diff = grid - mean
         inv_cov = np.linalg.inv(cov)
@@ -3160,12 +3199,12 @@ def _(FancyArrowPatch, np, pe, plt):
         "协调两种读数推测：\n预测读数分布  ×  传感器读数分布",
         color="white",
         fontsize=15,
-        path_effects=stroke_img1,
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.50, edgecolor="none"),
         zorder=35,
     )
 
     fig_img1.tight_layout()
-    fig_img1
+    figure_as_svg(fig_img1)
     return add_handdrawn_axes_for_demo, gaussian_pdf_2d_for_demo
 
 
@@ -3186,7 +3225,14 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(add_handdrawn_axes_for_demo, gaussian_pdf_2d_for_demo, np, pe, plt):
+def _(
+    add_handdrawn_axes_for_demo,
+    figure_as_svg,
+    gaussian_pdf_2d_for_demo,
+    np,
+    pe,
+    plt,
+):
     # =========================
     # 两个高斯分布相乘后的共同最可能区域
     # 注意：本 cell 依赖上一个 cell 中的 import 和 gaussian_pdf_2d_for_demo()
@@ -3364,12 +3410,12 @@ def _(add_handdrawn_axes_for_demo, gaussian_pdf_2d_for_demo, np, pe, plt):
         "两个高斯分布相乘后，\n重叠区域变成新的高概率区域",
         color="white",
         fontsize=15,
-        path_effects=stroke_img2,
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="black", alpha=0.50, edgecolor="none"),
         zorder=35,
     )
 
     fig_img2.tight_layout()
-    fig_img2
+    figure_as_svg(fig_img2)
     return
 
 
@@ -3500,13 +3546,19 @@ def _(mo):
 
 
 @app.cell
-def _(plot_robot_demo, robot_measurement_std, robot_process_std, robot_seed):
+def _(
+    figure_as_svg,
+    plot_robot_demo,
+    robot_measurement_std,
+    robot_process_std,
+    robot_seed,
+):
     robot_figure = plot_robot_demo(
         robot_process_std.value,
         robot_measurement_std.value,
         robot_seed.value,
     )
-    robot_figure
+    figure_as_svg(robot_figure)
     return
 
 
@@ -3596,6 +3648,7 @@ def _(mo):
 
 @app.cell
 def _(
+    figure_as_svg,
     plot_state_distribution,
     state_mean_position,
     state_mean_velocity,
@@ -3610,7 +3663,7 @@ def _(
         state_std_velocity.value,
         state_rho.value,
     )
-    state_figure
+    figure_as_svg(state_figure)
     return
 
 
@@ -3698,13 +3751,19 @@ def _(mo):
 
 
 @app.cell
-def _(plot_prediction, prediction_acceleration, prediction_dt, prediction_rho):
+def _(
+    figure_as_svg,
+    plot_prediction,
+    prediction_acceleration,
+    prediction_dt,
+    prediction_rho,
+):
     prediction_figure = plot_prediction(
         prediction_dt.value,
         prediction_acceleration.value,
         prediction_rho.value,
     )
-    prediction_figure
+    figure_as_svg(prediction_figure)
     return
 
 
@@ -3770,12 +3829,12 @@ def _(mo):
 
 
 @app.cell
-def _(noise_dt, noise_process_std, plot_process_noise):
+def _(figure_as_svg, noise_dt, noise_process_std, plot_process_noise):
     noise_figure = plot_process_noise(
         noise_process_std.value,
         noise_dt.value,
     )
-    noise_figure
+    figure_as_svg(noise_figure)
     return
 
 
@@ -3832,12 +3891,17 @@ def _(mo):
 
 
 @app.cell
-def _(plot_measurement_mapping, sensor_measurement_std, sensor_mode):
+def _(
+    figure_as_svg,
+    plot_measurement_mapping,
+    sensor_measurement_std,
+    sensor_mode,
+):
     measurement_figure = plot_measurement_mapping(
         sensor_mode.value,
         sensor_measurement_std.value,
     )
-    measurement_figure
+    figure_as_svg(measurement_figure)
     return
 
 
@@ -3922,6 +3986,7 @@ def _(mo):
 
 @app.cell
 def _(
+    figure_as_svg,
     fusion_measurement_mean,
     fusion_measurement_std,
     fusion_prior_mean,
@@ -3934,7 +3999,7 @@ def _(
         fusion_measurement_mean.value,
         fusion_measurement_std.value,
     )
-    fusion_1d_figure
+    figure_as_svg(fusion_1d_figure)
     return
 
 
@@ -3997,6 +4062,7 @@ def _(mo):
 
 @app.cell
 def _(
+    figure_as_svg,
     fusion_2d_measurement_rho,
     fusion_2d_prior_rho,
     fusion_2d_separation,
@@ -4007,7 +4073,7 @@ def _(
         fusion_2d_prior_rho.value,
         fusion_2d_measurement_rho.value,
     )
-    fusion_2d_figure
+    figure_as_svg(fusion_2d_figure)
     return
 
 
@@ -4073,9 +4139,9 @@ def _(mo):
 
 
 @app.cell
-def _(flow_stage, plot_information_flow):
+def _(figure_as_svg, flow_stage, plot_information_flow):
     flow_figure = plot_information_flow(flow_stage.value)
-    flow_figure
+    figure_as_svg(flow_figure)
     return
 
 
