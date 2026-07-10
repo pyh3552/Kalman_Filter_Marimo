@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.13"
+__generated_with = "0.23.10"
 app = marimo.App(width="medium", app_title="卡尔曼滤波：从不确定性到信息融合")
 
 
@@ -763,16 +763,7 @@ def _(Ellipse, FancyArrowPatch, FancyBboxPatch, np, plt):
         )
         return figure
 
-    return (
-        plot_gaussian_fusion_1d,
-        plot_gaussian_fusion_2d,
-        plot_information_flow,
-        plot_measurement_mapping,
-        plot_prediction,
-        plot_process_noise,
-        plot_robot_demo,
-        plot_state_distribution,
-    )
+    return
 
 
 @app.cell(hide_code=True)
@@ -782,7 +773,7 @@ def _(mo):
 
     卡尔曼滤波器是一个通用且强大的工具，用于在有不确定性的前提下**融合信息**。
 
-    [原文](https://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/)
+    本文内容翻译并拓展自该[BLOG](https://www.bzarg.com/p/how-a-kalman-filter-works-in-pictures/)
     """)
     return
 
@@ -791,7 +782,7 @@ def _(mo):
 def _(mo):
     mo.md(r"""
     ## 什么是卡尔曼滤波？
-    你可以在任何存在**不确定信息**的动态系统中使用卡尔曼滤波器，，并且你可以对该系统下一步的行为做出**有根据的推测**。
+    你可以在任何存在**不确定信息**的动态系统中使用卡尔曼滤波器，并且你可以对该系统下一步的行为做出**有根据的推测**。
 
     即便混乱的现实干扰了你推测的理想运动，卡尔曼滤波器通常也能非常出色地推断出实际发生的情况。
 
@@ -2237,7 +2228,7 @@ def _(mo):
     \end{split}
     \end{equation}\tag{4}$$
 
-    过程推导见于附录2。
+    过程推导见于附录1。
 
     因此，将方程(3)与方程(4)结合，可以得到：
 
@@ -3219,7 +3210,7 @@ def _(mo):
     1. 我们的传感器读数 $\color{yellowgreen}{\vec{\mathbf{z}}_k}$ 是对 $(z_1, z_2)$ 的（误）测量的概率；
     2. 我们先前估计的概率认为 $(z_1, z_2)$ 是我们应该看到的读数。
 
-    如果我们有两个概率，并且想知道*两者同时成立*的可能性，我们只需将它们相乘。因此，我们将两个高斯分布相乘，并且结果仍然服从高斯分布（详细见附录3）：
+    如果我们有两个概率，并且想知道*两者同时成立*的可能性，我们只需将它们相乘。因此，我们将两个高斯分布相乘，并且结果仍然服从高斯分布（详细见附录2）：
     """)
     return
 
@@ -3465,41 +3456,144 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     那么矩阵版本呢？
 
-    根据附录3中的推导可知，对于两个任意维度的高斯分布相乘后得到的高斯分布，其均值和协方差如下所示：
+    根据附录2中的推导可知，对于两个任意维度的高斯分布相乘后得到的高斯分布，其均值和协方差如下所示：
 
     $$
     \boxed{
-    \vec{\mu}
+    \vec{\mu}^{\prime}
     =
-    (\Sigma_1^{-1}+\Sigma_2^{-1})^{-1}
-    (\Sigma_1^{-1}\vec{\mu}_1+\Sigma_2^{-1}\vec{\mu}_2)
+    (\Sigma_0^{-1}+\Sigma_1^{-1})^{-1}
+    (\Sigma_0^{-1}\vec{\mu}_0+\Sigma_1^{-1}\vec{\mu}_1)
     }
+    \tag{14}
     $$
 
     $$
     \boxed{
-    \Sigma
+    \Sigma^{\prime}
     =
-    (\Sigma_1^{-1}+\Sigma_2^{-1})^{-1}
-    }
+    (\Sigma_0^{-1}+\Sigma_1^{-1})^{-1}
+    }\tag{15}
     $$
+    """)
+    return
 
-    好吧，让我们将方程12和13改写为矩阵形式。如果 $\Sigma$ 是高斯分布的协方差矩阵，$\vec{\mu}$ 是其沿各轴的均值，那么：
 
-    $$\begin{equation} \tag{14}
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    首先，我们观察公式15中的$\Sigma_0^{-1}+\Sigma_1^{-1}$，可以发现:
+
+    $$\Sigma_{0}^{-1}+\Sigma_{1}^{-1}=\Sigma_1^{-1}\Sigma_{0}\Sigma_{0}^{-1}+\Sigma_{1}^{-1}\Sigma_{1}\Sigma_{0}^{-1}=\Sigma_1^{-1}(\Sigma_{0}+\Sigma_{1})\Sigma_{0}^{-1}\tag{16}$$
+    我们对两边同时取矩阵的逆，可以得到：
+    $$\Sigma^{\prime}=(\Sigma_{0}^{-1}+\Sigma_{1}^{-1})^{-1}=(\Sigma_1^{-1}(\Sigma_{0}+\Sigma_{1})\Sigma_{0}^{-1})^{-1}=\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{1}\tag{17}$$
+    同理可得：
+    $$\Sigma_{0}^{-1}+\Sigma_{1}^{-1}=\Sigma_{0}^{-1}\Sigma_{0}\Sigma_{1}^{-1}+\Sigma_{0}^{-1}\Sigma_{1}\Sigma_{1}^{-1}=\Sigma_{0}^{-1}(\Sigma_{0}+\Sigma_{1})\Sigma_{1}^{-1}\tag{18}$$
+    和：
+    $$\Sigma^{\prime}=(\Sigma_{0}^{-1}+\Sigma_{1}^{-1})^{-1}=\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{0}\tag{19}$$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    拆解公式14中的$\vec{\mu}$可得：
+    $$
+    \begin{aligned}
+    \vec{\mu}^{\prime}
+    =&
+    (\Sigma_0^{-1}+\Sigma_1^{-1})^{-1}
+    (\Sigma_0^{-1}\vec{\mu}_0+\Sigma_1^{-1}\vec{\mu}_1)\\
+    =&(\Sigma_0^{-1}+\Sigma_1^{-1})^{-1}\Sigma_0^{-1}\vec{\mu}_{0}+(\Sigma_0^{-1}+\Sigma_1^{-1})^{-1}\Sigma_1^{-1}\vec{\mu}_{1}\\
+    &将等式(17)和(19)代入(\Sigma_0^{-1}+\Sigma_1^{-1})^{-1}\\
+    =&\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{0}\Sigma_0^{-1}\mu_{0}+
+    \Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{1}\Sigma_1^{-1}\mu_{1}\\
+    =&\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}\mu_{0}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\mu_{1}
+    \end{aligned}
+    $$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    结合等式17和等式19，可以得到：
+    $$
+    (\Sigma_{0}^{-1}+\Sigma_{1}^{-1})^{-1}=\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{1}=\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{0}\tag{20}
+    $$
+    进而可以得到：
+    $$\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}=\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{1}\Sigma_{0}^{-1}\tag{21}$$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    那么：
+    $$
+    \begin{aligned}\tag{22}
+    \vec{\mu}^{\prime}=&
+    \Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}\vec{\mu}_{0}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\vec{\mu}_{1}\\
+    =&\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{1}\Sigma_{0}^{-1}\vec{\mu}_{0}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\vec{\mu}_{1}\\
+    =&\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{1}\Sigma_{0}^{-1}\vec{\mu}_{0}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\vec{\mu}_{1}{\color{red}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{0}\Sigma_{0}^{-1}\vec{\mu}_{0}-\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{0}\Sigma_{0}^{-1}\vec{\mu}_{0}}\\
+    =&\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}(\Sigma_{0}+\Sigma_{1})\Sigma_{0}^{-1}\vec{\mu}_{0}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\vec{\mu}_{1}{\color{red}-\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\vec{\mu}_{0}}\\
+    =&\vec{\mu}_{0}+\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}(\vec{\mu}_{1}-\vec{\mu}_{0})
+    \end{aligned}
+    $$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    至此，我们已经成功地把公式13中的标量${\mu}^{\prime}$写成了矩阵形式。其中与$\mathbf{k}$对应的矩阵如下所示：
+    $$\mathbf{K}=\Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}\tag{23}$$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    再来看协方差矩阵如何化简。
+    首先，观察该式子：
+    $$(\Sigma_{0}+\Sigma_{1})(\Sigma_{0}+\Sigma_{1})^{-1}=\mathbf{I}\tag{24}$$
+    化简可得：
+    $$
+    \begin{aligned}
+    \Sigma_{0}(\Sigma_{0}+\Sigma_{1})^{-1}+\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}&=\mathbf{I}\\
+    \Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}&=\mathbf{I}-\mathbf{K}
+    \end{aligned}\tag{25}
+    $$
+    借助公式(25)，我们来化简协方差矩阵：
+    $$\Sigma^{\prime}=(\Sigma_{0}^{-1}+\Sigma_{1}^{-1})^{-1}=\Sigma_{1}(\Sigma_{0}+\Sigma_{1})^{-1}\Sigma_{0}=(\mathbf{I}-\mathbf{K})\Sigma_{0}=\Sigma_{0}-\mathbf{K}\Sigma_{0}\tag{26}$$
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    经过上面的推导，我们顺利地得到了与公式13所对应的矩阵形式：
+
+    $$\begin{equation} \tag{27}
     \color{purple}{\mathbf{K}} = \Sigma_0 (\Sigma_0 + \Sigma_1)^{-1}
     \end{equation}$$
 
     $$\begin{equation}
     \begin{aligned}
-    \color{royalblue}{\vec{\mu}'} &= \vec{\mu_0} + &\color{purple}{\mathbf{K}} (\vec{\mu_1} – \vec{\mu_0})\\
+    \color{royalblue}{\vec{\mu}'} &= \vec{\mu}_0 + &\color{purple}{\mathbf{K}} (\vec{\mu}_1 – \vec{\mu}_0)\\
     \color{mediumblue}{\Sigma'} &= \Sigma_0 – &\color{purple}{\mathbf{K}} \Sigma_0
-    \end{aligned} \tag{15}
+    \end{aligned} \tag{28}
     \end{equation}$$
 
     $\color{purple}{\mathbf{K}}$ 是一个称为**卡尔曼增益**的矩阵，我们马上就会用到它。
@@ -3507,703 +3601,79 @@ def _(mo):
     return
 
 
-@app.cell
-def _(mo):
-    robot_process_std = mo.ui.slider(
-        0.02,
-        0.80,
-        step=0.02,
-        value=0.18,
-        label="真实运动扰动 / 过程噪声 σₐ",
-        show_value=True,
-        full_width=True,
-    )
-    robot_measurement_std = mo.ui.slider(
-        0.5,
-        10.0,
-        step=0.5,
-        value=4.0,
-        label="GPS 测量噪声 σᵣ",
-        show_value=True,
-        full_width=True,
-    )
-    robot_seed = mo.ui.number(
-        start=0,
-        stop=999,
-        step=1,
-        value=7,
-        label="随机种子",
-    )
-    mo.vstack(
-        [
-            robot_process_std,
-            robot_measurement_std,
-            robot_seed,
-        ],
-        gap=0.8,
-    )
-    return robot_measurement_std, robot_process_std, robot_seed
-
-
-@app.cell
-def _(
-    figure_as_svg,
-    plot_robot_demo,
-    robot_measurement_std,
-    robot_process_std,
-    robot_seed,
-):
-    robot_figure = plot_robot_demo(
-        robot_process_std.value,
-        robot_measurement_std.value,
-        robot_seed.value,
-    )
-    figure_as_svg(robot_figure)
-    return
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    当 GPS 很嘈杂时，滤波器更多地信任连续运动模型；当 GPS 很精确时，位置方向的卡尔曼增益
-    会变大，估计会更快靠近测量。滤波器只需要保存上一时刻的状态和协方差，因此内存占用低，
-    很适合实时系统与嵌入式设备。
+    ## 整合全部
+    我们有两个分布：
+    预测测量值 $(\color{fuchsia}{\mu_0}, \color{deeppink}{\Sigma_0}) = (\color{fuchsia}{\mathbf{H}_k \mathbf{\hat{x}}_k}, \color{deeppink}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T})$，
 
-    ---
+    以及观测测量值 $(\color{yellowgreen}{\mu_1}, \color{mediumaquamarine}{\Sigma_1}) = (\color{yellowgreen}{\vec{\mathbf{z}}_k}, \color{mediumaquamarine}{\mathbf{R}_k})$。
 
-    ## 2. 状态不是一个点，而是一个概率分布
-
-    实际的位置和速度未知。我们只能说某些 $(p,v)$ 组合比其他组合更可能。
-    线性卡尔曼滤波器用一个多元高斯分布表示这种认识：
-
-    \[
-    \mathbf{x}_k \sim \mathcal{N}(\hat{\mathbf{x}}_k, \mathbf{P}_k).
-    \]
-
-    其中 $\hat{\mathbf{x}}_k$ 是最佳估计（均值），$\mathbf{P}_k$ 是协方差矩阵：
-
-    \[
-    \hat{\mathbf{x}}_k =
-    \begin{bmatrix}\hat p_k\\ \hat v_k\end{bmatrix},
-    \qquad
-    \mathbf{P}_k =
-    \begin{bmatrix}
-    \sigma_p^2 & \sigma_{pv}\\
-    \sigma_{vp} & \sigma_v^2
-    \end{bmatrix}.
-    \]
-
-    对角线元素是每个变量的方差；非对角线元素是协方差。协方差让一次位置测量也能间接修正
-    速度，反之亦然。拖动相关系数，观察概率椭圆如何旋转。
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    state_mean_position = mo.ui.slider(
-        -2.0, 2.0, step=0.2, value=0.4, label="位置均值 μₚ", show_value=True
-    )
-    state_mean_velocity = mo.ui.slider(
-        -2.0, 2.0, step=0.2, value=0.8, label="速度均值 μᵥ", show_value=True
-    )
-    state_std_position = mo.ui.slider(
-        0.3, 1.8, step=0.1, value=1.0, label="位置标准差 σₚ", show_value=True
-    )
-    state_std_velocity = mo.ui.slider(
-        0.3, 1.8, step=0.1, value=0.8, label="速度标准差 σᵥ", show_value=True
-    )
-    state_rho = mo.ui.slider(
-        -0.9,
-        0.9,
-        step=0.05,
-        value=0.65,
-        label="相关系数 ρ",
-        show_value=True,
-    )
-    mo.vstack(
-        [
-            mo.hstack(
-                [state_mean_position, state_mean_velocity],
-                widths="equal",
-                gap=1.2,
-            ),
-            mo.hstack(
-                [state_std_position, state_std_velocity],
-                widths="equal",
-                gap=1.2,
-            ),
-            state_rho,
-        ],
-        gap=0.8,
-    )
-    return (
-        state_mean_position,
-        state_mean_velocity,
-        state_rho,
-        state_std_position,
-        state_std_velocity,
-    )
-
-
-@app.cell
-def _(
-    figure_as_svg,
-    plot_state_distribution,
-    state_mean_position,
-    state_mean_velocity,
-    state_rho,
-    state_std_position,
-    state_std_velocity,
-):
-    state_figure = plot_state_distribution(
-        state_mean_position.value,
-        state_mean_velocity.value,
-        state_std_position.value,
-        state_std_velocity.value,
-        state_rho.value,
-    )
-    figure_as_svg(state_figure)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    - 当 $\rho=0$ 时，位置和速度不相关，椭圆轴与坐标轴对齐。
-    - 当 $|\rho|$ 增大时，知道一个变量会提供更多关于另一个变量的信息。
-    - 协方差矩阵是对称的：$\sigma_{pv}=\sigma_{vp}$。
-
-    这正是卡尔曼滤波器能够“从测量中榨取更多信息”的关键。
-
-    ---
-
-    ## 3. 用矩阵预测下一状态
-
-    对匀速直线运动，
-
-    \[
+    将它们分别作为$\vec{\mu}_{0}$和$\vec{\mu}_{1}$代入公式28，即可找到它们的重叠区域:
+    $$
+    \begin{equation}
     \begin{aligned}
-    p_k &= p_{k-1}+\Delta t\,v_{k-1},\\
-    v_k &= v_{k-1}.
+    \mathbf{H}_k \color{royalblue}{\mathbf{\hat{x}}_k'} &= \color{fuchsia}{\mathbf{H}_k \mathbf{\hat{x}}_k} & + & \color{purple}{\mathbf{K}} ( \color{yellowgreen}{\vec{\mathbf{z}}_k} – \color{fuchsia}{\mathbf{H}_k \mathbf{\hat{x}}_k} ) \\
+    \mathbf{H}_k \color{royalblue}{\mathbf{P}_k'} \mathbf{H}_k^T &= \color{deeppink}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T} & – & \color{purple}{\mathbf{K}} \color{deeppink}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T}
+    \end{aligned} \tag{29}
+    \end{equation}
+    $$
+    根据公式27$\color{purple}{\mathbf{K}} = \Sigma_0 (\Sigma_0 + \Sigma_1)^{-1}$，此时的卡尔曼增益为：
+    $$
+    \begin{equation} \tag{30}
+    \color{purple}{\mathbf{K}} = {\color{deeppink}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T} ( \color{deeppink}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T} + {\color{mediumaquamarine}{\mathbf{R}_k})}}^{-1}
+    \end{equation}
+    $$
+    将公式30代入公式29时，我们可以将公式29中的每一项前面消去一个$\mathbf{H}_{k}$。另外，公式29中关于$\mathbf{P}_{k}^{\prime}$的等式，可以将每一项后面消去一个$\mathbf{H}_k^T$。
+    于是，我们得到化简后的形式：
+    $$
+    \begin{equation} \tag{31}
+    \begin{aligned}
+    \color{royalblue}{\mathbf{\hat{x}}_k'} &= \color{deeppink}{\mathbf{\hat{x}}_k} &+ & \color{purple}{\mathbf{K'}} ( \color{yellowgreen}{\vec{\mathbf{z}_k}} - \color{fuchsia}{\mathbf{H}_k \mathbf{\hat{x}}_k} ) \\
+    \color{royalblue}{\mathbf{P}_k'} &= \color{deeppink}{\mathbf{P}_k} & - & \color{purple}{\mathbf{K'}} \color{fuchsia}{\mathbf{H}_k \mathbf{P}_k}
     \end{aligned}
-    \]
+    \end{equation}
+    $$
 
-    写成矩阵形式：
+    $$\begin{equation} \tag{32}
+    \color{purple}{\mathbf{K'}} = {{\color{deeppink}{\mathbf{P}_k \mathbf{H}_k^T} }( \color{fuchsia}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T} + \color{mediumaquamarine}{\mathbf{R}_k}})^{-1}
+    \end{equation}$$
 
-    \[
-    \hat{\mathbf{x}}_k^- =
-    \underbrace{\begin{bmatrix}1&\Delta t\\0&1\end{bmatrix}}_{\mathbf F_k}
-    \hat{\mathbf{x}}_{k-1}^+
-    +
-    \underbrace{\begin{bmatrix}\frac12\Delta t^2\\\Delta t\end{bmatrix}}_{\mathbf B_k}
-    a_k.
-    \]
+    这就给出了**更新步骤**的完整方程。
 
-    上标 $-$ 表示测量更新前的**先验**，上标 $+$ 表示测量更新后的**后验**。
-    如果随机向量经过线性变换 $\mathbf A$，其协方差满足
-
-    \[
-    \operatorname{Cov}(\mathbf A\mathbf x)
-    =\mathbf A\operatorname{Cov}(\mathbf x)\mathbf A^T.
-    \]
-
-    因此，不考虑过程噪声时：
-
-    \[
-    \mathbf P_k^-=\mathbf F_k\mathbf P_{k-1}^+\mathbf F_k^T.
-    \]
+    就是这样！$\color{royalblue}{\mathbf{\hat{x}}_k'}$ 是我们新的最佳估计，我们可以继续将它（连同 $\color{royalblue}{\mathbf{P}_k'}$）反馈到另一轮预测或更新中，循环往复。
     """)
     return
 
 
-@app.cell
-def _(mo):
-    prediction_dt = mo.ui.slider(
-        0.2,
-        3.0,
-        step=0.1,
-        value=1.0,
-        label="时间间隔 Δt",
-        show_value=True,
-    )
-    prediction_acceleration = mo.ui.slider(
-        -1.5,
-        1.5,
-        step=0.1,
-        value=0.4,
-        label="已知控制加速度 a",
-        show_value=True,
-    )
-    prediction_rho = mo.ui.slider(
-        -0.8,
-        0.8,
-        step=0.1,
-        value=0.4,
-        label="初始位置—速度相关性",
-        show_value=True,
-    )
-    mo.vstack(
-        [prediction_dt, prediction_acceleration, prediction_rho],
-        gap=0.8,
-    )
-    return prediction_acceleration, prediction_dt, prediction_rho
-
-
-@app.cell
-def _(
-    figure_as_svg,
-    plot_prediction,
-    prediction_acceleration,
-    prediction_dt,
-    prediction_rho,
-):
-    prediction_figure = plot_prediction(
-        prediction_dt.value,
-        prediction_acceleration.value,
-        prediction_rho.value,
-    )
-    figure_as_svg(prediction_figure)
-    return
-
-
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    $\mathbf F_k$ 不只移动分布中心，也会拉伸、旋转整个不确定性椭圆。
-    $\mathbf B_k\mathbf u_k$ 则描述已知的外部控制，例如油门、转向或期望加速度。
+    ## 总结
+    在上述所有数学公式中，你真正需要实现的是方程7、31和 32。
 
-    ---
-
-    ## 4. 外部不确定性：过程噪声
-
-    真实世界里还有未建模的风、打滑和地面冲击。我们把这些影响建模为零均值高斯噪声，
-    其协方差为 $\mathbf Q_k$。完整预测步骤为
-
-    \[
-    \boxed{
+    1. **预测均值**（方程7-1）
+       \[
+       \color{deeppink}{\mathbf{\hat{x}}_k} = \mathbf{F}_k {\color{royalblue}{\mathbf{\hat{x}}_{k-1}}}  +  \mathbf{B}_k \color{darkorange}{\vec{\mathbf{u}_k}}
+       \]
+    2. **预测协方差**（方程7-2）
+       \[
+       \color{deeppink}{\mathbf{P}_k} = \mathbf{F_k} {\color{royalblue}{\mathbf{P}_{k-1}}} \mathbf{F}_k^T + \color{mediumaquamarine}{\mathbf{Q}_k}
+       \]
+    3. **结合测量更新**
+    $$
+    \begin{equation} \tag{31}
     \begin{aligned}
-    \hat{\mathbf{x}}_k^- &=
-    \mathbf F_k\hat{\mathbf{x}}_{k-1}^+
-    +\mathbf B_k\mathbf u_k,\\
-    \mathbf P_k^- &=
-    \mathbf F_k\mathbf P_{k-1}^+\mathbf F_k^T+\mathbf Q_k.
-    \end{aligned}}
-    \]
-
-    对“随机加速度”模型，可以令
-
-    \[
-    \mathbf Q_k=\sigma_a^2
-    \begin{bmatrix}
-    \frac14\Delta t^4 & \frac12\Delta t^3\\
-    \frac12\Delta t^3 & \Delta t^2
-    \end{bmatrix}.
-    \]
-
-    $\mathbf Q_k$ 不改变预测均值，但会扩大预测协方差，表示我们对模型保持适当怀疑。
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    noise_process_std = mo.ui.slider(
-        0.0,
-        1.5,
-        step=0.05,
-        value=0.45,
-        label="未建模加速度标准差 σₐ",
-        show_value=True,
-    )
-    noise_dt = mo.ui.slider(
-        0.2,
-        2.5,
-        step=0.1,
-        value=1.0,
-        label="时间间隔 Δt",
-        show_value=True,
-    )
-    mo.vstack([noise_process_std, noise_dt], gap=0.8)
-    return noise_dt, noise_process_std
-
-
-@app.cell
-def _(figure_as_svg, noise_dt, noise_process_std, plot_process_noise):
-    noise_figure = plot_process_noise(
-        noise_process_std.value,
-        noise_dt.value,
-    )
-    figure_as_svg(noise_figure)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ---
-
-    ## 5. 用测量修正估计
-
-    传感器通常只观察状态的一部分，或者使用不同的单位。观测矩阵 $\mathbf H_k$
-    将状态空间映射到测量空间：
-
-    \[
-    \mathbf z_k=\mathbf H_k\mathbf x_k+\mathbf r_k,
-    \qquad
-    \mathbf r_k\sim\mathcal N(\mathbf 0,\mathbf R_k).
-    \]
-
-    因而，先验在测量空间中对应
-
-    \[
-    \begin{aligned}
-    \boldsymbol\mu_{\text{expected}}&=\mathbf H_k\hat{\mathbf x}_k^-,\\
-    \boldsymbol\Sigma_{\text{expected}}
-    &=\mathbf H_k\mathbf P_k^-\mathbf H_k^T+\mathbf R_k.
+    \color{royalblue}{\mathbf{\hat{x}}_k'} &= \color{deeppink}{\mathbf{\hat{x}}_k} &+ & \color{purple}{\mathbf{K'}} ( \color{yellowgreen}{\vec{\mathbf{z}_k}} - \color{fuchsia}{\mathbf{H}_k \mathbf{\hat{x}}_k} ) \\
+    \color{royalblue}{\mathbf{P}_k'} &= \color{deeppink}{\mathbf{P}_k} & - & \color{purple}{\mathbf{K'}} \color{fuchsia}{\mathbf{H}_k \mathbf{P}_k}
     \end{aligned}
-    \]
+    \end{equation}
+    $$
 
-    选择传感器类型，观察同一个状态分布如何被投影到不同的测量空间。
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    sensor_mode = mo.ui.dropdown(
-        ["只测位置", "只测速度", "同时测位置和速度"],
-        value="只测位置",
-        label="观测矩阵 H 对应的传感器",
-        full_width=True,
-    )
-    sensor_measurement_std = mo.ui.slider(
-        0.1,
-        2.0,
-        step=0.1,
-        value=0.5,
-        label="测量噪声标准差",
-        show_value=True,
-        full_width=True,
-    )
-    mo.vstack([sensor_mode, sensor_measurement_std], gap=0.8)
-    return sensor_measurement_std, sensor_mode
-
-
-@app.cell
-def _(
-    figure_as_svg,
-    plot_measurement_mapping,
-    sensor_measurement_std,
-    sensor_mode,
-):
-    measurement_figure = plot_measurement_mapping(
-        sensor_mode.value,
-        sensor_measurement_std.value,
-    )
-    figure_as_svg(measurement_figure)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    $\mathbf R_k$ 描述传感器噪声：数值越大，某个读数可能由更广泛的真实状态产生。
-    现在我们拥有两个高斯分布：
-
-    1. 模型预测在测量空间中的分布；
-    2. 以实际读数 $\mathbf z_k$ 为中心、协方差为 $\mathbf R_k$ 的测量分布。
-
-    要求二者同时成立，相当于将两个高斯概率密度相乘。其重叠区域仍然是高斯分布，
-    并且通常比任一输入分布更集中。
-
-    ---
-
-    ## 6. 高斯分布的融合与卡尔曼增益
-
-    一维高斯分布为
-
-    \[
-    \mathcal N(x;\mu,\sigma^2)=
-    \frac{1}{\sigma\sqrt{2\pi}}
-    \exp\left[-\frac{(x-\mu)^2}{2\sigma^2}\right].
-    \]
-
-    设预测为 $(\mu_0,\sigma_0^2)$、测量为 $(\mu_1,\sigma_1^2)$，则
-
-    \[
-    K=\frac{\sigma_0^2}{\sigma_0^2+\sigma_1^2},
-    \]
-
-    \[
-    \mu^+=\mu_0+K(\mu_1-\mu_0),
-    \qquad
-    (\sigma^+)^2=(1-K)\sigma_0^2.
-    \]
-
-    $K$ 就是一维卡尔曼增益。测量方差越小，$K$ 越接近 1，后验越靠近测量；
-    预测方差越小，$K$ 越接近 0，后验越靠近预测。
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    fusion_prior_mean = mo.ui.slider(
-        -4.0, 4.0, step=0.2, value=-1.0, label="预测均值 μ₀", show_value=True
-    )
-    fusion_prior_std = mo.ui.slider(
-        0.2, 3.0, step=0.1, value=1.4, label="预测标准差 σ₀", show_value=True
-    )
-    fusion_measurement_mean = mo.ui.slider(
-        -4.0, 4.0, step=0.2, value=1.5, label="测量均值 μ₁", show_value=True
-    )
-    fusion_measurement_std = mo.ui.slider(
-        0.2, 3.0, step=0.1, value=0.8, label="测量标准差 σ₁", show_value=True
-    )
-    mo.vstack(
-        [
-            mo.hstack(
-                [fusion_prior_mean, fusion_prior_std],
-                widths="equal",
-                gap=1.0,
-            ),
-            mo.hstack(
-                [fusion_measurement_mean, fusion_measurement_std],
-                widths="equal",
-                gap=1.0,
-            ),
-        ],
-        gap=0.8,
-    )
-    return (
-        fusion_measurement_mean,
-        fusion_measurement_std,
-        fusion_prior_mean,
-        fusion_prior_std,
-    )
-
-
-@app.cell
-def _(
-    figure_as_svg,
-    fusion_measurement_mean,
-    fusion_measurement_std,
-    fusion_prior_mean,
-    fusion_prior_std,
-    plot_gaussian_fusion_1d,
-):
-    fusion_1d_figure = plot_gaussian_fusion_1d(
-        fusion_prior_mean.value,
-        fusion_prior_std.value,
-        fusion_measurement_mean.value,
-        fusion_measurement_std.value,
-    )
-    figure_as_svg(fusion_1d_figure)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    多维情况下，用均值向量和协方差矩阵替换标量即可。两个高斯分布直接融合时，
-
-    \[
-    \mathbf\Sigma^+
-    =(\mathbf\Sigma_0^{-1}+\mathbf\Sigma_1^{-1})^{-1},
-    \qquad
-    \boldsymbol\mu^+
-    =\mathbf\Sigma^+
-    (\mathbf\Sigma_0^{-1}\boldsymbol\mu_0+
-    \mathbf\Sigma_1^{-1}\boldsymbol\mu_1).
-    \]
-
-    改变两个分布的方向和中心距离，观察后验如何落在重叠区域中。
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    fusion_2d_separation = mo.ui.slider(
-        0.0,
-        5.0,
-        step=0.2,
-        value=2.4,
-        label="两个均值的距离",
-        show_value=True,
-    )
-    fusion_2d_prior_rho = mo.ui.slider(
-        -0.8,
-        0.8,
-        step=0.1,
-        value=0.7,
-        label="预测分布相关性",
-        show_value=True,
-    )
-    fusion_2d_measurement_rho = mo.ui.slider(
-        -0.8,
-        0.8,
-        step=0.1,
-        value=-0.7,
-        label="测量分布相关性",
-        show_value=True,
-    )
-    mo.vstack(
-        [
-            fusion_2d_separation,
-            fusion_2d_prior_rho,
-            fusion_2d_measurement_rho,
-        ],
-        gap=0.8,
-    )
-    return fusion_2d_measurement_rho, fusion_2d_prior_rho, fusion_2d_separation
-
-
-@app.cell
-def _(
-    figure_as_svg,
-    fusion_2d_measurement_rho,
-    fusion_2d_prior_rho,
-    fusion_2d_separation,
-    plot_gaussian_fusion_2d,
-):
-    fusion_2d_figure = plot_gaussian_fusion_2d(
-        fusion_2d_separation.value,
-        fusion_2d_prior_rho.value,
-        fusion_2d_measurement_rho.value,
-    )
-    figure_as_svg(fusion_2d_figure)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ---
-
-    ## 7. 整合全部：标准更新方程
-
-    定义创新（测量残差）和创新协方差：
-
-    \[
-    \mathbf y_k=\mathbf z_k-\mathbf H_k\hat{\mathbf x}_k^-,
-    \qquad
-    \mathbf S_k=\mathbf H_k\mathbf P_k^-\mathbf H_k^T+\mathbf R_k.
-    \]
-
-    卡尔曼增益为
-
-    \[
-    \boxed{
-    \mathbf K_k=\mathbf P_k^-\mathbf H_k^T\mathbf S_k^{-1}
-    }.
-    \]
-
-    更新状态和协方差：
-
-    \[
-    \boxed{
-    \begin{aligned}
-    \hat{\mathbf x}_k^+
-    &=\hat{\mathbf x}_k^-+\mathbf K_k\mathbf y_k,\\
-    \mathbf P_k^+
-    &=(\mathbf I-\mathbf K_k\mathbf H_k)\mathbf P_k^-.
-    \end{aligned}}
-    \]
-
-    实际数值实现中，可使用更稳定的 Joseph 形式：
-
-    \[
-    \mathbf P_k^+
-    =(\mathbf I-\mathbf K_k\mathbf H_k)\mathbf P_k^-
-    (\mathbf I-\mathbf K_k\mathbf H_k)^T
-    +\mathbf K_k\mathbf R_k\mathbf K_k^T.
-    \]
-
-    新后验会成为下一轮预测的输入，构成持续循环。
-    """)
-    return
-
-
-@app.cell
-def _(mo):
-    flow_stage = mo.ui.radio(
-        ["预测", "更新", "完整循环"],
-        value="完整循环",
-        label="高亮信息流阶段",
-        inline=True,
-    )
-    flow_stage
-    return (flow_stage,)
-
-
-@app.cell
-def _(figure_as_svg, flow_stage, plot_information_flow):
-    flow_figure = plot_information_flow(flow_stage.value)
-    figure_as_svg(flow_figure)
-    return
-
-
-@app.cell
-def _(mo):
-    mo.md(r"""
-    ### 实现时真正需要的三组公式
-
-    1. **预测均值**
-       \[
-       \hat{\mathbf x}_k^-=
-       \mathbf F_k\hat{\mathbf x}_{k-1}^+
-       +\mathbf B_k\mathbf u_k
-       \]
-    2. **预测协方差**
-       \[
-       \mathbf P_k^-=
-       \mathbf F_k\mathbf P_{k-1}^+\mathbf F_k^T+\mathbf Q_k
-       \]
-    3. **测量更新**
-       \[
-       \mathbf K_k=\mathbf P_k^-\mathbf H_k^T
-       (\mathbf H_k\mathbf P_k^-\mathbf H_k^T+\mathbf R_k)^{-1}
-       \]
-       \[
-       \hat{\mathbf x}_k^+=\hat{\mathbf x}_k^-+
-       \mathbf K_k(\mathbf z_k-\mathbf H_k\hat{\mathbf x}_k^-)
-       \]
-
-    ---
-
-    ## 8. 总结
-
-    卡尔曼滤波器维护两个对象：状态均值 $\hat{\mathbf x}$ 与协方差 $\mathbf P$。
-    每一轮先用系统模型预测，再用传感器测量修正。卡尔曼增益不是手动设置的常数，
-    而是由预测不确定性和测量不确定性共同决定。
-
-    只要系统动力学和观测模型是线性的、噪声可以合理近似为高斯分布，上述递推就是
-    线性最小均方误差意义下的最优估计。对于非线性系统，扩展卡尔曼滤波器（EKF）
-    会在当前均值附近对非线性预测函数和观测函数进行局部线性化。
-
-    ## 符号表
-
-    | 符号 | 意义 |
-    |---|---|
-    | $\mathbf x_k$ | 时刻 $k$ 的真实状态向量 |
-    | $p_k,\ v_k$ | 位置与速度 |
-    | $\hat{\mathbf x}_k^-$ | 测量更新前的先验状态估计 |
-    | $\hat{\mathbf x}_k^+$ | 测量更新后的后验状态估计 |
-    | $\mathbf P_k^-,\ \mathbf P_k^+$ | 先验与后验协方差 |
-    | $\mathbf F_k$ | 状态转移矩阵 |
-    | $\mathbf B_k$ | 控制矩阵 |
-    | $\mathbf u_k$ | 已知控制输入 |
-    | $\mathbf Q_k$ | 过程噪声协方差 |
-    | $\mathbf H_k$ | 观测矩阵 |
-    | $\mathbf z_k$ | 传感器实际读数 |
-    | $\mathbf R_k$ | 测量噪声协方差 |
-    | $\mathbf y_k$ | 创新，即测量与预测读数之差 |
-    | $\mathbf S_k$ | 创新协方差 |
-    | $\mathbf K_k$ | 卡尔曼增益 |
-    | $\Delta t$ | 相邻时刻之间的时间间隔 |
-    | $\boldsymbol\mu,\mathbf\Sigma$ | 一般高斯分布的均值与协方差 |
+    $$\begin{equation} \tag{32}
+    \color{purple}{\mathbf{K'}} = {{\color{deeppink}{\mathbf{P}_k \mathbf{H}_k^T} }( \color{fuchsia}{\mathbf{H}_k \mathbf{P}_k \mathbf{H}_k^T} + \color{mediumaquamarine}{\mathbf{R}_k}})^{-1}
+    \end{equation}$$
     """)
     return
 
@@ -4221,7 +3691,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    # 附录2 协方差矩阵的变换
+    # 附录1 协方差矩阵的变换
 
     设随机向量 $x\in\mathbb{R}^n$，均值为
 
@@ -4460,7 +3930,7 @@ def _(mo):
     mo.md(r"""
     ---
 
-    # 附录3 高斯分布相乘得到高斯分布
+    # 附录2 高斯分布相乘得到高斯分布
 
     设两个 \(d\) 维高斯分布为
 
@@ -4507,8 +3977,6 @@ def _(mo):
     \qquad
     \Lambda_2=\Sigma_2^{-1}
     \]
-
-    这里 \(\Lambda_1,\Lambda_2\) 称为**精度矩阵**。
 
     ## 2. 两个高斯相乘
 
